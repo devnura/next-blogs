@@ -3,13 +3,33 @@
 import { SubmitHandler, useForm } from "react-hook-form";
 import { FormInputPost } from "../types";
 import { FC } from "react";
+import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
+import { Tag } from "@prisma/client";
+import { Trash } from "lucide-react";
 
 interface FormPostProps {
   submit: SubmitHandler<FormInputPost>;
   label: String;
+  initialValue?: FormInputPost;
 }
-const FormPost: FC<FormPostProps> = ({ submit, label }) => {
-  const { register, handleSubmit } = useForm<FormInputPost>();
+const FormPost: FC<FormPostProps> = ({ submit, label, initialValue }) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { isSubmitting },
+  } = useForm<FormInputPost>({
+    defaultValues: initialValue,
+  });
+
+  // fetch list tags
+  const { data: dataTags, isLoading: isLoadingTags } = useQuery<Tag[]>({
+    queryKey: ["tags"],
+    queryFn: async () => {
+      const { data } = await axios.get("/api/tags");
+      return data.data;
+    },
+  });
 
   return (
     <form
@@ -29,21 +49,36 @@ const FormPost: FC<FormPostProps> = ({ submit, label }) => {
         placeholder="Post content..."
       />
 
-      <select
-        {...register("tag", { required: true })}
-        className="select select-bordered w-full max-w-lg"
-        defaultValue={""}
+      {isLoadingTags ? (
+        <span className="loading loading-spinner loading-sm"></span>
+      ) : (
+        <select
+          {...register("tagId", { required: true })}
+          className="select select-bordered w-full max-w-lg"
+          defaultValue={""}
+        >
+          <option disabled value="">
+            Select tags
+          </option>
+          {dataTags?.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+      )}
+      <button
+        className="btn btn-primary w-full max-w-lg"
+        type="submit"
+        disabled={isSubmitting}
       >
-        <option disabled value="">
-          Select tags
-        </option>
-        <option>javascript</option>
-        <option>php</option>
-        <option>go</option>
-      </select>
-
-      <button type="submit" className="btn btn-primary w-full max-w-lg">
-        {label}
+        {isSubmitting ? (
+          <span className="loading loading-spinner"></span>
+        ) : (
+          <>
+            {label} {isSubmitting}
+          </>
+        )}
       </button>
     </form>
   );

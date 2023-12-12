@@ -1,18 +1,45 @@
 import BackButton from "@/app/components/BackButton";
 import ButtonAction from "@/app/components/ButtonAction";
-import React from "react";
+import { db } from "@/lib/db";
+import { FC } from "react";
 
-const page = () => {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+const getPost = async (id: string) => {
+  const respose = await db.post.findUniqueOrThrow({
+    where: {
+      id: id,
+    },
+    select: {
+      id: true,
+      title: true,
+      content: true,
+      tag: true,
+    },
+  });
+
+  return respose;
+};
+
+const Page: FC<PageProps> = async ({ params }) => {
+  console.log(params.id);
+  const post = await getPost(params.id);
+
   return (
     <>
       <div className="mb-8">
         <BackButton />
-        <h2 className="text-2xl font-bold my-4">Post One</h2>
-        <ButtonAction />
+        <h2 className="text-2xl font-bold my-4">{post?.title}</h2>
+        <ButtonAction id={params.id} />
       </div>
-      <p className="text-slate-700">Post one content</p>
+      <span className="badge badge-neutral">{post?.tag.name}</span>
+      <p className="text-slate-700">{post?.content}</p>
     </>
   );
 };
 
-export default page;
+export default Page;
